@@ -80,6 +80,14 @@ const HomePage: React.FC = () => {
     }
   };
 
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Ctrl/Cmd + Enter для отправки
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e as any);
+    }
+  };
+
   return (
     <div className="app">
       <ThemeToggle />
@@ -94,26 +102,40 @@ const HomePage: React.FC = () => {
           <textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleTextareaKeyDown}
             placeholder="Введите ваш запрос..."
             className="query-input"
             rows={6}
+            autoFocus
           />
 
           <div className="providers-section">
             <h3>Выберите AI модели:</h3>
             <div className="providers-grid">
               {providers.map((provider) => (
-                <label
+                <div
                   key={provider.id}
                   className={`provider-card ${
                     !provider.available ? 'disabled' : ''
                   } ${selectedProviders.has(provider.id) ? 'selected' : ''}`}
+                  onClick={() => provider.available && toggleProvider(provider.id)}
+                  onKeyDown={(e) => {
+                    if ((e.key === ' ' || e.key === 'Enter') && provider.available) {
+                      e.preventDefault();
+                      toggleProvider(provider.id);
+                    }
+                  }}
+                  tabIndex={provider.available ? 0 : -1}
+                  role="checkbox"
+                  aria-checked={selectedProviders.has(provider.id)}
+                  aria-disabled={!provider.available}
                 >
                   <input
                     type="checkbox"
                     checked={selectedProviders.has(provider.id)}
-                    onChange={() => toggleProvider(provider.id)}
+                    onChange={() => {}}
                     disabled={!provider.available}
+                    tabIndex={-1}
                   />
                   <div className="provider-info">
                     <span className="provider-name">{provider.name}</span>
@@ -121,7 +143,7 @@ const HomePage: React.FC = () => {
                       <span className="provider-status">{provider.reason}</span>
                     )}
                   </div>
-                </label>
+                </div>
               ))}
             </div>
           </div>

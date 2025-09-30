@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -8,7 +8,7 @@ interface AIResponse {
   provider: string;
   model: string;
   response: string | null;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'loading';
   error?: string;
   executionTime: number;
 }
@@ -28,6 +28,17 @@ const ResultsPage: React.FC = () => {
   ]);
   const [newQuery, setNewQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Прокрутка вниз при добавлении нового сообщения
+    setTimeout(() => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 100);
+  }, [conversation]);
 
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,19 +46,44 @@ const ResultsPage: React.FC = () => {
 
     setLoading(true);
 
-    try {
-      // Получаем провайдеров из первого запроса
-      const providers = initialState.results.map(r => r.provider.toLowerCase().replace(/\s+/g, ''));
+    // Получаем провайдеров из первого запроса
+    const providers = initialState.results.map(r => r.provider.toLowerCase().replace(/\s+/g, ''));
 
+    // Создаем заглушки с анимацией загрузки (используем имена из первого запроса)
+    const loadingResults: AIResponse[] = providers.map(provider => {
+      const originalResult = initialState.results.find(
+        r => r.provider.toLowerCase().replace(/\s+/g, '') === provider
+      );
+      return {
+        provider: originalResult?.provider || provider.charAt(0).toUpperCase() + provider.slice(1),
+        model: '',
+        response: null,
+        status: 'loading',
+        executionTime: 0
+      };
+    });
+
+    // Добавляем сообщение с загрузкой
+    setConversation([...conversation, { query: newQuery, results: loadingResults }]);
+    const queryToSend = newQuery;
+    setNewQuery('');
+
+    try {
       const response = await axios.post('http://localhost:5000/api/query', {
-        query: newQuery,
+        query: queryToSend,
         providers
       });
 
-      setConversation([...conversation, { query: newQuery, results: response.data.results }]);
-      setNewQuery('');
+      // Заменяем загрузочные карточки на реальные результаты
+      setConversation(prev => {
+        const newConv = [...prev];
+        newConv[newConv.length - 1] = { query: queryToSend, results: response.data.results };
+        return newConv;
+      });
     } catch (error) {
       console.error('Ошибка запроса:', error);
+      // Удаляем загрузочное сообщение при ошибке
+      setConversation(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
@@ -83,11 +119,11 @@ const ResultsPage: React.FC = () => {
         </form>
       </header>
 
-      <div className="conversation-container">
+      <div className="conversation-container" ref={containerRef}>
         {conversation.map((message, msgIndex) => (
           <div key={msgIndex} className="conversation-block">
             <div className="query-display">
-              <strong>Запрос:</strong> {message.query}
+              <strong>Вы:</strong> {message.query}
             </div>
 
             <div className="responses-grid-compact">
@@ -95,11 +131,21 @@ const ResultsPage: React.FC = () => {
                 <div key={index} className={`response-card-compact ${result.status}`}>
                   <div className="card-header-compact">
                     <h3>{result.provider}</h3>
-                    <span className="time-badge">{result.executionTime}ms</span>
+                    {result.status === 'loading' ? (
+                      <div className="loading-spinner"></div>
+                    ) : (
+                      <span className="time-badge">{result.executionTime}ms</span>
+                    )}
                   </div>
 
                   <div className="card-body-compact">
-                    {result.status === 'success' ? (
+                    {result.status === 'loading' ? (
+                      <div className="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    ) : result.status === 'success' ? (
                       <p className="response-text">{result.response}</p>
                     ) : (
                       <p className="error-text">❌ {result.error}</p>

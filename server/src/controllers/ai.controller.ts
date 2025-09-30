@@ -48,11 +48,13 @@ export class AIController {
       // Parallel queries to all selected AI providers
       const promises = selectedProviders.map(async (providerId): Promise<AIResponse> => {
         const service = getServices()[providerId as keyof ReturnType<typeof getServices>];
+        const providerConfig = AI_PROVIDERS[providerId as keyof typeof AI_PROVIDERS];
+        const providerName = providerConfig?.name || providerId;
         const providerStartTime = Date.now();
 
         if (!service) {
           return {
-            provider: providerId,
+            provider: providerName,
             model: 'unknown',
             response: null,
             status: 'error',
@@ -63,7 +65,7 @@ export class AIController {
 
         if (!service.isAvailable()) {
           return {
-            provider: providerId,
+            provider: providerName,
             model: 'unknown',
             response: null,
             status: 'error',
@@ -75,16 +77,16 @@ export class AIController {
         try {
           const response = await service.query(query, options);
           return {
-            provider: providerId,
-            model: options?.model || AI_PROVIDERS[providerId as keyof typeof AI_PROVIDERS].models[0],
+            provider: providerName,
+            model: options?.model || providerConfig.models[0],
             response,
             status: 'success',
             executionTime: Date.now() - providerStartTime
           };
         } catch (error: any) {
           return {
-            provider: providerId,
-            model: options?.model || AI_PROVIDERS[providerId as keyof typeof AI_PROVIDERS].models[0],
+            provider: providerName,
+            model: options?.model || providerConfig.models[0],
             response: null,
             status: 'error',
             error: error.message || 'Unknown error occurred',

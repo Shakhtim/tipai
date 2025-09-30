@@ -1,45 +1,74 @@
 import axios from 'axios';
+import https from 'https';
+import { randomUUID } from 'crypto';
 import { QueryOptions } from '../types';
 import { AI_PROVIDERS, DEFAULT_OPTIONS } from '../config/aiProviders';
 
 export class GigaChatService {
-  private apiKey: string | undefined;
+  private authToken: string | undefined;
   private endpoint: string;
   private accessToken: string = '';
+  private tokenExpiry: number = 0;
+  private httpsAgent: https.Agent;
 
   constructor() {
-    this.apiKey = process.env.GIGACHAT_API_KEY;
+    this.authToken = process.env.GIGACHAT_AUTH_TOKEN;
     this.endpoint = AI_PROVIDERS.gigachat.endpoint;
+
+    // Отключаем проверку SSL сертификата для GigaChat
+    this.httpsAgent = new https.Agent({
+      rejectUnauthorized: false
+    });
   }
 
   private async getAccessToken(): Promise<string> {
-    if (this.accessToken) {
+    const now = Date.now();
+
+    // Проверяем, не истек ли токен (с запасом 5 минут)
+    if (this.accessToken && this.tokenExpiry > now + 300000) {
       return this.accessToken;
     }
 
-    if (!this.apiKey) {
-      throw new Error('GigaChat API key not configured');
+    if (!this.authToken) {
+      throw new Error('GigaChat credentials not configured');
     }
 
-    const response = await axios.post(
-      'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
-      'scope=GIGACHAT_API_PERS',
-      {
-        headers: {
-          'Authorization': `Basic ${this.apiKey}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'RqUID': Date.now().toString()
-        }
-      }
-    );
+    try {
+      const payload = 'scope=GIGACHAT_API_PERS';
 
-    this.accessToken = response.data.access_token;
-    return this.accessToken!;
+      const response = await axios.post(
+        'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'RqUID': randomUUID(),
+            'Authorization': `Basic ${this.authToken}`
+          },
+          httpsAgent: this.httpsAgent
+        }
+      );
+
+      this.accessToken = response.data.access_token;
+      // Токен действует 30 минут (1800000 мс)
+      this.tokenExpiry = now + 1800000;
+
+      return this.accessToken;
+    } catch (error: any) {
+      console.error('GigaChat OAuth error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+      throw new Error(`Failed to get GigaChat access token: ${JSON.stringify(error.response?.data) || error.message}`);
+    }
   }
 
   async query(prompt: string, options: QueryOptions = {}): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('GigaChat API key not configured');
+    if (!this.authToken) {
+      throw new Error('GigaChat credentials not configured');
     }
 
     const token = await this.getAccessToken();
@@ -61,7 +90,8 @@ export class GigaChatService {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        httpsAgent: this.httpsAgent
       }
     );
 
@@ -69,6 +99,6 @@ export class GigaChatService {
   }
 
   isAvailable(): boolean {
-    return !!this.apiKey;
+    return !!this.authToken;
   }
 }
