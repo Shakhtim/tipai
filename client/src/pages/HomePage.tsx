@@ -12,15 +12,6 @@ interface AIProvider {
   reason?: string;
 }
 
-interface AIResponse {
-  provider: string;
-  model: string;
-  response: string | null;
-  status: 'success' | 'error';
-  error?: string;
-  executionTime: number;
-}
-
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
