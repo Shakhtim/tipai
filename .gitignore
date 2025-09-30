@@ -37,3 +37,6 @@ Thumbs.db
 coverage/
 .cache/
 nul
+
+# Yandex Cloud credentials
+server/authorized_key.json
