@@ -69,7 +69,7 @@ const ResultsPage: React.FC = () => {
     setNewQuery('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/query', {
+      const response = await axios.post('/api/query', {
         query: queryToSend,
         providers
       });

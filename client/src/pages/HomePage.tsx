@@ -25,7 +25,7 @@ const HomePage: React.FC = () => {
 
   const fetchProviders = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/providers');
+      const response = await axios.get('/api/providers');
       setProviders(response.data.providers);
 
       const availableProviders = response.data.providers
@@ -54,7 +54,7 @@ const HomePage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/query', {
+      const response = await axios.post('/api/query', {
         query,
         providers: Array.from(selectedProviders)
       });
