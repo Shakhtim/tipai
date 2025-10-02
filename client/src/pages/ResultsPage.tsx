@@ -255,8 +255,6 @@ const ResultsPage: React.FC = () => {
 
   return (
     <div className="results-page">
-      <ThemeToggle />
-
       {/* Sidebar toggle button (always visible) */}
       {!sidebarOpen && (
         <button onClick={() => setSidebarOpen(true)} className="open-sidebar-btn" title="Показать историю">
@@ -315,6 +313,7 @@ const ResultsPage: React.FC = () => {
               ☰
             </button>
             <h1 onClick={handleNewSearch} className="logo">TipAI.ru</h1>
+            <ThemeToggle />
           </div>
 
           <form onSubmit={handleContinue} className="continue-search-form">

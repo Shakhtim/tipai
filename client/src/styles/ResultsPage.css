@@ -550,13 +550,36 @@
 
   /* Показываем кнопку меню в хедере */
   .mobile-menu-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
   }
 
   .search-header {
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
+  }
+
+  /* Равномерное распределение на мобильных */
+  .header-left {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .logo {
+    text-align: center;
+    font-size: 1.5rem;
+    justify-self: center;
+  }
+
+  /* Переключатель темы справа */
+  .header-left :global(.theme-toggle) {
+    justify-self: end;
   }
 
   .continue-search-form {
