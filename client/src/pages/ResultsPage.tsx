@@ -18,33 +18,65 @@ interface ConversationMessage {
   results: AIResponse[];
 }
 
-const STORAGE_KEY = 'tipai_chat_history';
+interface ConversationSession {
+  id: string;
+  title: string;
+  messages: ConversationMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+const STORAGE_KEY = 'tipai_conversations';
+const ACTIVE_SESSION_KEY = 'tipai_active_session';
 
 const ResultsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const initialState = location.state as { query: string; results: AIResponse[] };
 
-  const [conversation, setConversation] = useState<ConversationMessage[]>(() => {
-    // Загружаем историю из localStorage
+  const [sessions, setSessions] = useState<ConversationSession[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         return JSON.parse(saved);
       } catch {
-        return [{ query: initialState.query, results: initialState.results }];
+        return [];
       }
     }
-    return [{ query: initialState.query, results: initialState.results }];
+    return [];
   });
+
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => {
+    const savedActive = localStorage.getItem(ACTIVE_SESSION_KEY);
+    if (savedActive && sessions.find(s => s.id === savedActive)) {
+      return savedActive;
+    }
+    // Создаем новую сессию если пришли с главной страницы
+    const newId = `session_${Date.now()}`;
+    const newSession: ConversationSession = {
+      id: newId,
+      title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
+      messages: [{ query: initialState.query, results: initialState.results }],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    setSessions([newSession, ...sessions]);
+    return newId;
+  });
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newQuery, setNewQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Сохраняем историю в localStorage при изменении
+  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const conversation = activeSession?.messages || [];
+
+  // Сохраняем сессии в localStorage при изменении
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversation));
-  }, [conversation]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    localStorage.setItem(ACTIVE_SESSION_KEY, activeSessionId);
+  }, [sessions, activeSessionId]);
 
   useEffect(() => {
     // Прокрутка вниз при добавлении нового сообщения
@@ -79,8 +111,18 @@ const ResultsPage: React.FC = () => {
       };
     });
 
-    // Добавляем сообщение с загрузкой
-    setConversation([...conversation, { query: newQuery, results: loadingResults }]);
+    // Добавляем сообщение с загрузкой в активную сессию
+    setSessions(prev => prev.map(session => {
+      if (session.id === activeSessionId) {
+        return {
+          ...session,
+          messages: [...session.messages, { query: newQuery, results: loadingResults }],
+          updatedAt: Date.now()
+        };
+      }
+      return session;
+    }));
+
     const queryToSend = newQuery;
     setNewQuery('');
 
@@ -102,15 +144,30 @@ const ResultsPage: React.FC = () => {
       });
 
       // Заменяем загрузочные карточки на реальные результаты
-      setConversation(prev => {
-        const newConv = [...prev];
-        newConv[newConv.length - 1] = { query: queryToSend, results: response.data.results };
-        return newConv;
-      });
+      setSessions(prev => prev.map(session => {
+        if (session.id === activeSessionId) {
+          const newMessages = [...session.messages];
+          newMessages[newMessages.length - 1] = { query: queryToSend, results: response.data.results };
+          return {
+            ...session,
+            messages: newMessages,
+            updatedAt: Date.now()
+          };
+        }
+        return session;
+      }));
     } catch (error) {
       console.error('Ошибка запроса:', error);
       // Удаляем загрузочное сообщение при ошибке
-      setConversation(prev => prev.slice(0, -1));
+      setSessions(prev => prev.map(session => {
+        if (session.id === activeSessionId) {
+          return {
+            ...session,
+            messages: session.messages.slice(0, -1)
+          };
+        }
+        return session;
+      }));
     } finally {
       setLoading(false);
     }
@@ -120,9 +177,29 @@ const ResultsPage: React.FC = () => {
     navigate('/');
   };
 
-  const handleClearHistory = () => {
-    if (confirm('Очистить всю историю чата?')) {
+  const handleNewConversation = () => {
+    navigate('/');
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    if (confirm('Удалить этот диалог?')) {
+      const newSessions = sessions.filter(s => s.id !== sessionId);
+      setSessions(newSessions);
+
+      if (sessionId === activeSessionId) {
+        if (newSessions.length > 0) {
+          setActiveSessionId(newSessions[0].id);
+        } else {
+          navigate('/');
+        }
+      }
+    }
+  };
+
+  const handleClearAllSessions = () => {
+    if (confirm('Очистить всю историю диалогов?')) {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_SESSION_KEY);
       navigate('/');
     }
   };
@@ -131,70 +208,113 @@ const ResultsPage: React.FC = () => {
     <div className="results-page">
       <ThemeToggle />
 
-      <header className="search-header">
-        <div className="header-left">
-          <h1 onClick={handleNewSearch} className="logo">TipAI.ru</h1>
-          <button onClick={handleClearHistory} className="clear-history-btn" title="Очистить историю">
-            🗑️
+      {/* Sidebar */}
+      <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-header">
+          <button onClick={handleNewConversation} className="new-chat-btn">
+            ➕ Новый диалог
+          </button>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="toggle-sidebar-btn">
+            {sidebarOpen ? '◀' : '▶'}
           </button>
         </div>
 
-        <form onSubmit={handleContinue} className="continue-search-form">
-          <input
-            type="text"
-            value={newQuery}
-            onChange={(e) => setNewQuery(e.target.value)}
-            placeholder="Продолжить диалог..."
-            className="continue-search-input"
-            disabled={loading}
-          />
-          <button
-            type="submit"
-            className="continue-search-btn"
-            disabled={loading || !newQuery.trim()}
-          >
-            {loading ? '⏳' : '→'}
+        <div className="sessions-list">
+          {sessions.map(session => (
+            <div
+              key={session.id}
+              className={`session-item ${session.id === activeSessionId ? 'active' : ''}`}
+              onClick={() => setActiveSessionId(session.id)}
+            >
+              <div className="session-title">{session.title}</div>
+              <div className="session-meta">
+                <span className="session-count">{session.messages.length} сообщ.</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteSession(session.id);
+                  }}
+                  className="delete-session-btn"
+                  title="Удалить"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="sidebar-footer">
+          <button onClick={handleClearAllSessions} className="clear-all-btn">
+            🗑️ Очистить всё
           </button>
-        </form>
-      </header>
+        </div>
+      </div>
 
-      <div className="conversation-container" ref={containerRef}>
-        {conversation.map((message, msgIndex) => (
-          <div key={msgIndex} className="conversation-block">
-            <div className="query-display">
-              <strong>Вы:</strong> {message.query}
-            </div>
-
-            <div className="responses-grid-compact">
-              {message.results.map((result, index) => (
-                <div key={index} className={`response-card-compact ${result.status}`}>
-                  <div className="card-header-compact">
-                    <h3>{result.provider}</h3>
-                    {result.status === 'loading' ? (
-                      <div className="loading-spinner"></div>
-                    ) : (
-                      <span className="time-badge">{result.executionTime}ms</span>
-                    )}
-                  </div>
-
-                  <div className="card-body-compact">
-                    {result.status === 'loading' ? (
-                      <div className="loading-dots">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </div>
-                    ) : result.status === 'success' ? (
-                      <p className="response-text">{result.response}</p>
-                    ) : (
-                      <p className="error-text">❌ {result.error}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* Main content */}
+      <div className={`main-content ${sidebarOpen ? 'with-sidebar' : ''}`}>
+        <header className="search-header">
+          <div className="header-left">
+            <h1 onClick={handleNewSearch} className="logo">TipAI.ru</h1>
           </div>
-        ))}
+
+          <form onSubmit={handleContinue} className="continue-search-form">
+            <input
+              type="text"
+              value={newQuery}
+              onChange={(e) => setNewQuery(e.target.value)}
+              placeholder="Продолжить диалог..."
+              className="continue-search-input"
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              className="continue-search-btn"
+              disabled={loading || !newQuery.trim()}
+            >
+              {loading ? '⏳' : '→'}
+            </button>
+          </form>
+        </header>
+
+        <div className="conversation-container" ref={containerRef}>
+          {conversation.map((message, msgIndex) => (
+            <div key={msgIndex} className="conversation-block">
+              <div className="query-display">
+                <strong>Вы:</strong> {message.query}
+              </div>
+
+              <div className="responses-grid-compact">
+                {message.results.map((result, index) => (
+                  <div key={index} className={`response-card-compact ${result.status}`}>
+                    <div className="card-header-compact">
+                      <h3>{result.provider}</h3>
+                      {result.status === 'loading' ? (
+                        <div className="loading-spinner"></div>
+                      ) : (
+                        <span className="time-badge">{result.executionTime}ms</span>
+                      )}
+                    </div>
+
+                    <div className="card-body-compact">
+                      {result.status === 'loading' ? (
+                        <div className="loading-dots">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                      ) : result.status === 'success' ? (
+                        <p className="response-text">{result.response}</p>
+                      ) : (
+                        <p className="error-text">❌ {result.error}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
