@@ -58,25 +58,11 @@ const ResultsPage: React.FC = () => {
 
     // Проверяем тип навигации - это новый запрос или обновление страницы
     const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    const isPageReload = !initialState || !initialState.results || navigationEntry?.type === 'reload';
+    const isPageReload = navigationEntry?.type === 'reload';
 
-    // Если это обновление страницы, загружаем существующие сессии
-    if (isPageReload) {
-      if (savedActive && loadedSessions.find(s => s.id === savedActive)) {
-        // Загружаем существующую активную сессию
-        setSessions(loadedSessions);
-        setActiveSessionId(savedActive);
-      } else if (loadedSessions.length > 0) {
-        // Выбираем первую сессию
-        setSessions(loadedSessions);
-        setActiveSessionId(loadedSessions[0].id);
-      } else {
-        // Нет сессий - переходим на главную
-        navigate('/');
-        return;
-      }
-    } else if (initialState && initialState.query && initialState.results) {
-      // Это новый запрос с главной страницы - создаем новую сессию
+    // Если есть новый запрос с главной страницы (есть initialState с данными)
+    if (initialState && initialState.query && initialState.results && !isPageReload) {
+      // Создаем новую сессию
       const newId = `session_${Date.now()}`;
       const newSession: ConversationSession = {
         id: newId,
@@ -89,11 +75,17 @@ const ResultsPage: React.FC = () => {
       setSessions([newSession, ...loadedSessions]);
       setActiveSessionId(newId);
     } else {
-      // Неизвестное состояние - загружаем существующие сессии или переходим на главную
-      if (loadedSessions.length > 0) {
+      // Это обновление страницы или нет данных - загружаем существующие сессии
+      if (savedActive && loadedSessions.find(s => s.id === savedActive)) {
+        // Загружаем сохраненную активную сессию
         setSessions(loadedSessions);
-        setActiveSessionId(savedActive || loadedSessions[0].id);
+        setActiveSessionId(savedActive);
+      } else if (loadedSessions.length > 0) {
+        // Выбираем первую сессию
+        setSessions(loadedSessions);
+        setActiveSessionId(loadedSessions[0].id);
       } else {
+        // Нет сессий - переходим на главную
         navigate('/');
         return;
       }
