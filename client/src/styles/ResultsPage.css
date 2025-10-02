@@ -323,12 +323,14 @@
 
 .conversation-container {
   max-width: 1600px;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
 }
 
 .conversation-block {
   margin-bottom: 3rem;
+  width: 100%;
 }
 
 .query-display {
@@ -356,6 +358,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 1.25rem;
   align-items: stretch;
+  width: 100%;
 }
 
 @media (max-width: 900px) {
