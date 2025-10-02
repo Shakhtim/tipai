@@ -217,11 +217,11 @@ const ResultsPage: React.FC = () => {
   };
 
   const handleNewSearch = () => {
-    navigate('/');
+    navigate('/', { replace: true, state: null });
   };
 
   const handleNewConversation = () => {
-    navigate('/');
+    navigate('/', { replace: true, state: null });
   };
 
   const handleDeleteSession = (sessionId: string) => {
