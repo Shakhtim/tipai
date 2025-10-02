@@ -14,6 +14,7 @@ import type { QueryOptions } from '../types';
 interface AIService {
   isAvailable(): boolean;
   query(prompt: string, options?: QueryOptions): Promise<string>;
+  queryWithHistory?(messages: Array<{role: string; content: string}>, options?: QueryOptions): Promise<string>;
 }
 
 // Lazy initialization of services to ensure env vars are loaded
@@ -32,7 +33,7 @@ function getServices(): Record<string, AIService> {
 export class AIController {
   async query(req: Request, res: Response): Promise<void> {
     try {
-      const { query, providers, options }: QueryRequest = req.body;
+      const { query, providers, options, conversationHistory }: QueryRequest = req.body;
 
       if (!query || query.trim().length === 0) {
         res.status(400).json({
@@ -75,7 +76,19 @@ export class AIController {
         }
 
         try {
-          const response = await service.query(query, options);
+          let response: string;
+
+          // Use history if available and service supports it
+          if (conversationHistory && conversationHistory.length > 0 && service.queryWithHistory) {
+            const messages = [
+              ...conversationHistory,
+              { role: 'user', content: query }
+            ];
+            response = await service.queryWithHistory(messages, options);
+          } else {
+            response = await service.query(query, options);
+          }
+
           return {
             provider: providerName,
             model: options?.model || providerConfig.models[0],

@@ -14,18 +14,21 @@ export class YandexGPTService {
   }
 
   async query(prompt: string, options: QueryOptions = {}): Promise<string> {
+    return this.queryWithHistory([{ role: 'user', content: prompt }], options);
+  }
+
+  async queryWithHistory(messages: Array<{role: string; content: string}>, options: QueryOptions = {}): Promise<string> {
     if (!this.iamToken || !this.folderId) {
       throw new Error('Yandex IAM token or Folder ID not configured');
     }
 
     const modelUri = `gpt://${this.folderId}/${options.model || 'yandexgpt-lite'}/latest`;
 
-    console.log('YandexGPT Request:', {
-      endpoint: this.endpoint,
-      modelUri,
-      folderId: this.folderId,
-      hasIAMToken: !!this.iamToken
-    });
+    // Convert generic messages to Yandex format
+    const yandexMessages = messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      text: msg.content
+    }));
 
     try {
       const response = await axios.post(
@@ -37,12 +40,7 @@ export class YandexGPTService {
             temperature: options.temperature || DEFAULT_OPTIONS.temperature,
             maxTokens: options.maxTokens || DEFAULT_OPTIONS.maxTokens
           },
-          messages: [
-            {
-              role: 'user',
-              text: prompt
-            }
-          ]
+          messages: yandexMessages
         },
         {
           headers: {

@@ -6,10 +6,16 @@ export interface AIProvider {
   reason?: string;
 }
 
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface QueryRequest {
   query: string;
   providers?: string[];
   options?: QueryOptions;
+  conversationHistory?: ConversationMessage[];
 }
 
 export interface QueryOptions {

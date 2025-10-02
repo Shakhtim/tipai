@@ -84,10 +84,21 @@ const ResultsPage: React.FC = () => {
     const queryToSend = newQuery;
     setNewQuery('');
 
+    // Формируем историю разговора для отправки на сервер
+    const conversationHistory = conversation.flatMap(msg => {
+      // Берем первый успешный ответ для каждого сообщения
+      const successfulResponse = msg.results.find(r => r.status === 'success' && r.response);
+      return [
+        { role: 'user' as const, content: msg.query },
+        ...(successfulResponse ? [{ role: 'assistant' as const, content: successfulResponse.response || '' }] : [])
+      ];
+    });
+
     try {
       const response = await axios.post('/api/query', {
         query: queryToSend,
-        providers
+        providers,
+        conversationHistory
       });
 
       // Заменяем загрузочные карточки на реальные результаты

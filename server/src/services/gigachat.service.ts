@@ -67,22 +67,27 @@ export class GigaChatService {
   }
 
   async query(prompt: string, options: QueryOptions = {}): Promise<string> {
+    return this.queryWithHistory([{ role: 'user', content: prompt }], options);
+  }
+
+  async queryWithHistory(messages: Array<{role: string; content: string}>, options: QueryOptions = {}): Promise<string> {
     if (!this.authToken) {
       throw new Error('GigaChat credentials not configured');
     }
 
     const token = await this.getAccessToken();
 
+    // Convert generic messages to GigaChat format
+    const gigachatMessages = messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content
+    }));
+
     const response = await axios.post(
       this.endpoint,
       {
         model: options.model || 'GigaChat',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+        messages: gigachatMessages,
         temperature: options.temperature || DEFAULT_OPTIONS.temperature,
         max_tokens: options.maxTokens || DEFAULT_OPTIONS.maxTokens
       },
