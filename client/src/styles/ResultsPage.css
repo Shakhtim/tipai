@@ -377,9 +377,6 @@
   transition: all 0.3s;
   display: flex;
   flex-direction: column;
-  height: 450px;
-  min-height: 450px;
-  max-height: 450px;
   width: 100%;
 }
 
@@ -445,7 +442,6 @@
 
 .card-body-compact {
   flex: 1;
-  overflow-y: auto;
   overflow-x: hidden;
   position: relative;
   padding-right: 0.5rem;
