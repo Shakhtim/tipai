@@ -62,7 +62,9 @@ const HomePage: React.FC = () => {
       navigate('/results', {
         state: {
           query,
-          results: response.data.results
+          results: response.data.results,
+          isNewQuery: true,
+          timestamp: Date.now()
         }
       });
     } catch (error) {

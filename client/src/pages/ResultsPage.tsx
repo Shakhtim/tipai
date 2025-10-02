@@ -32,7 +32,7 @@ const ACTIVE_SESSION_KEY = 'tipai_active_session';
 const ResultsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const initialState = location.state as { query: string; results: AIResponse[] };
+  const initialState = location.state as { query: string; results: AIResponse[]; isNewQuery?: boolean; timestamp?: number };
 
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -56,13 +56,13 @@ const ResultsPage: React.FC = () => {
     // Проверяем, есть ли активная сессия
     const savedActive = localStorage.getItem(ACTIVE_SESSION_KEY);
 
-    // Проверяем тип навигации - это новый запрос или обновление страницы
-    const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    const isPageReload = navigationEntry?.type === 'reload';
+    // Проверяем - это новый запрос с главной страницы или загрузка существующей сессии
+    const isNewQuery = initialState?.isNewQuery === true &&
+                       initialState?.query &&
+                       initialState?.results;
 
-    // Если есть новый запрос с главной страницы (есть initialState с данными)
-    if (initialState && initialState.query && initialState.results && !isPageReload) {
-      // Создаем новую сессию
+    if (isNewQuery) {
+      // Это новый запрос с главной страницы - создаем новую сессию
       const newId = `session_${Date.now()}`;
       const newSession: ConversationSession = {
         id: newId,
@@ -74,18 +74,23 @@ const ResultsPage: React.FC = () => {
 
       setSessions([newSession, ...loadedSessions]);
       setActiveSessionId(newId);
+
+      console.log('Created new session:', newId, 'Total sessions:', loadedSessions.length + 1);
     } else {
-      // Это обновление страницы или нет данных - загружаем существующие сессии
+      // Загружаем существующие сессии (обновление страницы, возврат назад и т.д.)
       if (savedActive && loadedSessions.find(s => s.id === savedActive)) {
         // Загружаем сохраненную активную сессию
         setSessions(loadedSessions);
         setActiveSessionId(savedActive);
+        console.log('Loaded saved session:', savedActive);
       } else if (loadedSessions.length > 0) {
         // Выбираем первую сессию
         setSessions(loadedSessions);
         setActiveSessionId(loadedSessions[0].id);
+        console.log('Loaded first session:', loadedSessions[0].id);
       } else {
         // Нет сессий - переходим на главную
+        console.log('No sessions found, redirecting to home');
         navigate('/');
         return;
       }
