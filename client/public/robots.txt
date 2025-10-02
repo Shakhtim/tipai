@@ -1,0 +1,19 @@
+# TipAI.ru - robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Яндекс
+User-agent: Yandex
+Allow: /
+
+# Google
+User-agent: Googlebot
+Allow: /
+
+# Частота сканирования (для Яндекса)
+Host: https://tipai.ru
+
+# Sitemap
+Sitemap: https://tipai.ru/sitemap.xml
