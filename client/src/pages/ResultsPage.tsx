@@ -22,6 +22,7 @@ interface ConversationSession {
   id: string;
   title: string;
   messages: ConversationMessage[];
+  providers: string[]; // Список провайдеров для этой сессии
   createdAt: number;
   updatedAt: number;
 }
@@ -48,6 +49,17 @@ const ResultsPage: React.FC = () => {
     if (saved) {
       try {
         loadedSessions = JSON.parse(saved);
+        // Миграция старых сессий: добавляем providers если их нет
+        loadedSessions = loadedSessions.map(session => {
+          if (!session.providers && session.messages.length > 0) {
+            // Извлекаем провайдеров из первого сообщения
+            const providers = session.messages[0].results.map(r =>
+              r.provider.toLowerCase().replace(/\s+/g, '')
+            );
+            return { ...session, providers };
+          }
+          return session;
+        });
       } catch {
         loadedSessions = [];
       }
@@ -76,17 +88,22 @@ const ResultsPage: React.FC = () => {
       } else {
         // Это новый запрос с главной страницы - создаем новую сессию
         const newId = `session_${Date.now()}`;
+
+        // Сохраняем провайдеров из этого запроса
+        const providers = initialState.results.map(r => r.provider.toLowerCase().replace(/\s+/g, ''));
+
         const newSession: ConversationSession = {
           id: newId,
           title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
           messages: [{ query: initialState.query, results: initialState.results }],
+          providers: providers, // Сохраняем провайдеров
           createdAt: initialState.timestamp || Date.now(),
           updatedAt: Date.now()
         };
 
         setSessions([newSession, ...loadedSessions]);
         setActiveSessionId(newId);
-        console.log('Created new session:', newId, 'Total sessions:', loadedSessions.length + 1);
+        console.log('Created new session:', newId, 'Providers:', providers, 'Total sessions:', loadedSessions.length + 1);
       }
     } else {
       // Загружаем существующие сессии (обновление страницы, возврат назад и т.д.)
@@ -154,12 +171,13 @@ const ResultsPage: React.FC = () => {
       setSidebarOpen(false);
     }
 
-    // Получаем провайдеров из первого запроса
-    const providers = initialState.results.map(r => r.provider.toLowerCase().replace(/\s+/g, ''));
+    // Получаем провайдеров из текущей сессии
+    const providers = activeSession?.providers || [];
 
-    // Создаем заглушки с анимацией загрузки (используем имена из первого запроса)
+    // Создаем заглушки с анимацией загрузки (используем имена из первого сообщения сессии)
+    const firstMessage = activeSession?.messages[0];
     const loadingResults: AIResponse[] = providers.map(provider => {
-      const originalResult = initialState.results.find(
+      const originalResult = firstMessage?.results.find(
         r => r.provider.toLowerCase().replace(/\s+/g, '') === provider
       );
       return {
