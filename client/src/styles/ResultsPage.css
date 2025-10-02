@@ -18,6 +18,12 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .logo {
   font-size: 1.75rem;
   font-weight: 800;
@@ -32,6 +38,25 @@
 
 .logo:hover {
   transform: scale(1.05);
+}
+
+.clear-history-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 1.25rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-history-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
 }
 
 .continue-search-form {

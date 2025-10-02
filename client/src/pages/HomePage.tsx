@@ -144,7 +144,7 @@ const HomePage: React.FC = () => {
             className="submit-button"
             disabled={loading || !query.trim() || selectedProviders.size === 0}
           >
-            {loading ? 'Обработка...' : 'Сравнить ответы'}
+            {loading ? 'Обработка...' : 'Спросить'}
           </button>
         </form>
       </main>

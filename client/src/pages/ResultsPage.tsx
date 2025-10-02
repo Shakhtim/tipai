@@ -18,17 +18,33 @@ interface ConversationMessage {
   results: AIResponse[];
 }
 
+const STORAGE_KEY = 'tipai_chat_history';
+
 const ResultsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const initialState = location.state as { query: string; results: AIResponse[] };
 
-  const [conversation, setConversation] = useState<ConversationMessage[]>([
-    { query: initialState.query, results: initialState.results }
-  ]);
+  const [conversation, setConversation] = useState<ConversationMessage[]>(() => {
+    // Загружаем историю из localStorage
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [{ query: initialState.query, results: initialState.results }];
+      }
+    }
+    return [{ query: initialState.query, results: initialState.results }];
+  });
   const [newQuery, setNewQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Сохраняем историю в localStorage при изменении
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversation));
+  }, [conversation]);
 
   useEffect(() => {
     // Прокрутка вниз при добавлении нового сообщения
@@ -93,12 +109,24 @@ const ResultsPage: React.FC = () => {
     navigate('/');
   };
 
+  const handleClearHistory = () => {
+    if (confirm('Очистить всю историю чата?')) {
+      localStorage.removeItem(STORAGE_KEY);
+      navigate('/');
+    }
+  };
+
   return (
     <div className="results-page">
       <ThemeToggle />
 
       <header className="search-header">
-        <h1 onClick={handleNewSearch} className="logo">TipAI.ru</h1>
+        <div className="header-left">
+          <h1 onClick={handleNewSearch} className="logo">TipAI.ru</h1>
+          <button onClick={handleClearHistory} className="clear-history-btn" title="Очистить историю">
+            🗑️
+          </button>
+        </div>
 
         <form onSubmit={handleContinue} className="continue-search-form">
           <input

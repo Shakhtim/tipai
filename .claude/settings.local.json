@@ -15,7 +15,12 @@
       "Bash(git commit:*)",
       "Bash(git branch:*)",
       "Bash(git remote add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(ssh root@37.252.21.186 \"echo ''Connection test successful''\")",
+      "Read(//c/Users/tshak/Downloads/**)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
