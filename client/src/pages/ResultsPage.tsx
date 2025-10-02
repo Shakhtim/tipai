@@ -56,45 +56,47 @@ const ResultsPage: React.FC = () => {
     // Проверяем, есть ли активная сессия
     const savedActive = localStorage.getItem(ACTIVE_SESSION_KEY);
 
-    // Если пришли с новым запросом (есть initialState И results)
-    if (initialState && initialState.query && initialState.results) {
-      // Проверяем, не существует ли уже сессия с таким же первым запросом (защита от дублирования)
-      const existingSession = loadedSessions.find(s =>
-        s.messages.length > 0 &&
-        s.messages[0].query === initialState.query &&
-        Math.abs(s.createdAt - Date.now()) < 5000 // создана менее 5 секунд назад
-      );
+    // Проверяем тип навигации - это новый запрос или обновление страницы
+    const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    const isPageReload = !initialState || !initialState.results || navigationEntry?.type === 'reload';
 
-      if (existingSession) {
-        // Сессия уже существует, просто активируем её
+    // Если это обновление страницы, загружаем существующие сессии
+    if (isPageReload) {
+      if (savedActive && loadedSessions.find(s => s.id === savedActive)) {
+        // Загружаем существующую активную сессию
         setSessions(loadedSessions);
-        setActiveSessionId(existingSession.id);
+        setActiveSessionId(savedActive);
+      } else if (loadedSessions.length > 0) {
+        // Выбираем первую сессию
+        setSessions(loadedSessions);
+        setActiveSessionId(loadedSessions[0].id);
       } else {
-        // Создаем новую сессию
-        const newId = `session_${Date.now()}`;
-        const newSession: ConversationSession = {
-          id: newId,
-          title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
-          messages: [{ query: initialState.query, results: initialState.results }],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-
-        setSessions([newSession, ...loadedSessions]);
-        setActiveSessionId(newId);
+        // Нет сессий - переходим на главную
+        navigate('/');
+        return;
       }
-    } else if (savedActive && loadedSessions.find(s => s.id === savedActive)) {
-      // Загружаем существующую активную сессию (обновление страницы)
-      setSessions(loadedSessions);
-      setActiveSessionId(savedActive);
-    } else if (loadedSessions.length > 0) {
-      // Выбираем первую сессию
-      setSessions(loadedSessions);
-      setActiveSessionId(loadedSessions[0].id);
+    } else if (initialState && initialState.query && initialState.results) {
+      // Это новый запрос с главной страницы - создаем новую сессию
+      const newId = `session_${Date.now()}`;
+      const newSession: ConversationSession = {
+        id: newId,
+        title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
+        messages: [{ query: initialState.query, results: initialState.results }],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      setSessions([newSession, ...loadedSessions]);
+      setActiveSessionId(newId);
     } else {
-      // Нет сессий - переходим на главную
-      navigate('/');
-      return;
+      // Неизвестное состояние - загружаем существующие сессии или переходим на главную
+      if (loadedSessions.length > 0) {
+        setSessions(loadedSessions);
+        setActiveSessionId(savedActive || loadedSessions[0].id);
+      } else {
+        navigate('/');
+        return;
+      }
     }
 
     setInitialized(true);

@@ -578,8 +578,30 @@
   }
 
   /* Переключатель темы справа */
-  .header-left :global(.theme-toggle) {
+  .header-left .theme-toggle {
+    position: static !important;
     justify-self: end;
+    align-self: center;
+  }
+
+  .header-left .theme-toggle-track {
+    width: 50px !important;
+    height: 28px !important;
+  }
+
+  .header-left .theme-toggle-thumb {
+    width: 22px !important;
+    height: 22px !important;
+    top: 1px !important;
+  }
+
+  .header-left [data-theme="light"] .theme-toggle-thumb {
+    transform: translateX(22px) !important;
+  }
+
+  .header-left .theme-toggle-thumb svg {
+    width: 14px !important;
+    height: 14px !important;
   }
 
   .continue-search-form {
