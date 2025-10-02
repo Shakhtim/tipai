@@ -62,20 +62,32 @@ const ResultsPage: React.FC = () => {
                        initialState?.results;
 
     if (isNewQuery) {
-      // Это новый запрос с главной страницы - создаем новую сессию
-      const newId = `session_${Date.now()}`;
-      const newSession: ConversationSession = {
-        id: newId,
-        title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
-        messages: [{ query: initialState.query, results: initialState.results }],
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
+      // Проверяем, есть ли уже сессия с таким же timestamp (защита от дублирования)
+      const existingSession = loadedSessions.find(s =>
+        s.messages[0]?.query === initialState.query &&
+        Math.abs(s.createdAt - (initialState.timestamp || 0)) < 1000 // в пределах 1 секунды
+      );
 
-      setSessions([newSession, ...loadedSessions]);
-      setActiveSessionId(newId);
+      if (existingSession) {
+        // Это дубликат (reload страницы) - загружаем существующую сессию
+        setSessions(loadedSessions);
+        setActiveSessionId(existingSession.id);
+        console.log('Prevented duplicate session, loaded existing:', existingSession.id);
+      } else {
+        // Это новый запрос с главной страницы - создаем новую сессию
+        const newId = `session_${Date.now()}`;
+        const newSession: ConversationSession = {
+          id: newId,
+          title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
+          messages: [{ query: initialState.query, results: initialState.results }],
+          createdAt: initialState.timestamp || Date.now(),
+          updatedAt: Date.now()
+        };
 
-      console.log('Created new session:', newId, 'Total sessions:', loadedSessions.length + 1);
+        setSessions([newSession, ...loadedSessions]);
+        setActiveSessionId(newId);
+        console.log('Created new session:', newId, 'Total sessions:', loadedSessions.length + 1);
+      }
     } else {
       // Загружаем существующие сессии (обновление страницы, возврат назад и т.д.)
       if (savedActive && loadedSessions.find(s => s.id === savedActive)) {

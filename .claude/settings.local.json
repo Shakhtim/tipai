@@ -1,27 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx ts-node:*)",
-      "Bash(python:*)",
-      "Bash(npm run dev:*)",
-      "Bash(curl:*)",
-      "Bash(Get-Process node)",
-      "Bash(Stop-Process -Force)",
-      "Bash(npx kill-port:*)",
-      "Bash(node:*)",
-      "Bash(npm install:*)",
-      "Bash(git init:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git branch:*)",
-      "Bash(git remote add:*)",
-      "Bash(git push:*)",
-      "Bash(git pull:*)",
-      "Bash(git stash:*)",
-      "Bash(ssh root@37.252.21.186 \"echo ''Connection test successful''\")",
-      "Read(//c/Users/tshak/Downloads/**)",
-      "Bash(npm run build:*)",
-      "Bash(!initialState.results\" prevented new queries\n- Now properly checks only navigationEntry.type === ''reload''\n\nFixed logic:\n1. If initialState exists AND has query/results AND not reload → Create new session\n2. Otherwise → Load existing sessions from localStorage\n\nThis fixes the issue where new queries from homepage weren''t creating sessions.\n\nTesting:\n- New query from homepage: ✓ Creates new session\n- Page reload: ✓ Loads existing session\n- No duplication on reload: ✓ Works correctly\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(ssh:*)"
     ],
     "deny": [],
     "ask": []

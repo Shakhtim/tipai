@@ -374,7 +374,10 @@
   transition: all 0.3s;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 450px;
+  min-height: 450px;
+  max-height: 450px;
+  width: 100%;
 }
 
 [data-theme="light"] .response-card-compact {
@@ -441,8 +444,6 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 300px;
-  max-height: 500px;
   position: relative;
   padding-right: 0.5rem;
 }
