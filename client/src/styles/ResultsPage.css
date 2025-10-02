@@ -24,6 +24,28 @@
   transform: translateX(-100%);
 }
 
+.open-sidebar-btn {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 999;
+  padding: 1rem 0.5rem;
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  border: none;
+  border-radius: 0 8px 8px 0;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 2px 0 10px var(--glow);
+}
+
+.open-sidebar-btn:hover {
+  padding-left: 0.75rem;
+  box-shadow: 4px 0 20px rgba(167, 139, 250, 0.6);
+}
+
 .sidebar-header {
   padding: 1rem;
   border-bottom: 1px solid rgba(167, 139, 250, 0.2);

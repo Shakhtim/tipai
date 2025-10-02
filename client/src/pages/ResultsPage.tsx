@@ -56,22 +56,35 @@ const ResultsPage: React.FC = () => {
     // Проверяем, есть ли активная сессия
     const savedActive = localStorage.getItem(ACTIVE_SESSION_KEY);
 
-    // Если пришли с новым запросом (есть initialState)
-    if (initialState && initialState.query) {
-      // Создаем новую сессию
-      const newId = `session_${Date.now()}`;
-      const newSession: ConversationSession = {
-        id: newId,
-        title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
-        messages: [{ query: initialState.query, results: initialState.results }],
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
+    // Если пришли с новым запросом (есть initialState И results)
+    if (initialState && initialState.query && initialState.results) {
+      // Проверяем, не существует ли уже сессия с таким же первым запросом (защита от дублирования)
+      const existingSession = loadedSessions.find(s =>
+        s.messages.length > 0 &&
+        s.messages[0].query === initialState.query &&
+        Math.abs(s.createdAt - Date.now()) < 5000 // создана менее 5 секунд назад
+      );
 
-      setSessions([newSession, ...loadedSessions]);
-      setActiveSessionId(newId);
+      if (existingSession) {
+        // Сессия уже существует, просто активируем её
+        setSessions(loadedSessions);
+        setActiveSessionId(existingSession.id);
+      } else {
+        // Создаем новую сессию
+        const newId = `session_${Date.now()}`;
+        const newSession: ConversationSession = {
+          id: newId,
+          title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
+          messages: [{ query: initialState.query, results: initialState.results }],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+
+        setSessions([newSession, ...loadedSessions]);
+        setActiveSessionId(newId);
+      }
     } else if (savedActive && loadedSessions.find(s => s.id === savedActive)) {
-      // Загружаем существующую активную сессию
+      // Загружаем существующую активную сессию (обновление страницы)
       setSessions(loadedSessions);
       setActiveSessionId(savedActive);
     } else if (loadedSessions.length > 0) {
@@ -231,14 +244,21 @@ const ResultsPage: React.FC = () => {
     <div className="results-page">
       <ThemeToggle />
 
+      {/* Sidebar toggle button (always visible) */}
+      {!sidebarOpen && (
+        <button onClick={() => setSidebarOpen(true)} className="open-sidebar-btn" title="Показать историю">
+          ▶
+        </button>
+      )}
+
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <button onClick={handleNewConversation} className="new-chat-btn">
             ➕ Новый диалог
           </button>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="toggle-sidebar-btn">
-            {sidebarOpen ? '◀' : '▶'}
+          <button onClick={() => setSidebarOpen(false)} className="toggle-sidebar-btn">
+            ◀
           </button>
         </div>
 
