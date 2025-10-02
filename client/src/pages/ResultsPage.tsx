@@ -98,9 +98,17 @@ const ResultsPage: React.FC = () => {
     }
 
     setInitialized(true);
+
+    // На мобильных устройствах закрываем сайдбар после загрузки
+    if (window.innerWidth <= 768) {
+      setSidebarOpen(false);
+    }
   }, [initialized, initialState, navigate]);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    // На мобильных устройствах сайдбар по умолчанию закрыт
+    return window.innerWidth > 768;
+  });
   const [newQuery, setNewQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,6 +137,11 @@ const ResultsPage: React.FC = () => {
     if (!newQuery.trim() || loading) return;
 
     setLoading(true);
+
+    // На мобильных закрываем сайдбар при отправке запроса
+    if (window.innerWidth <= 768) {
+      setSidebarOpen(false);
+    }
 
     // Получаем провайдеров из первого запроса
     const providers = initialState.results.map(r => r.provider.toLowerCase().replace(/\s+/g, ''));
@@ -298,6 +311,9 @@ const ResultsPage: React.FC = () => {
       <div className={`main-content ${sidebarOpen ? 'with-sidebar' : ''}`}>
         <header className="search-header">
           <div className="header-left">
+            <button onClick={() => setSidebarOpen(true)} className="mobile-menu-btn" title="Меню">
+              ☰
+            </button>
             <h1 onClick={handleNewSearch} className="logo">TipAI.ru</h1>
           </div>
 
