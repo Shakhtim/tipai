@@ -7,6 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import aiRoutes from './routes/ai.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { TokenRefreshService } from './services/token-refresh.service';
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -39,8 +40,25 @@ app.get('/', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
+// Start IAM token auto-refresh
+const tokenService = TokenRefreshService.getInstance();
+tokenService.startAutoRefresh();
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  tokenService.stopAutoRefresh();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  tokenService.stopAutoRefresh();
+  process.exit(0);
 });

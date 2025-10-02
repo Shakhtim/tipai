@@ -34,35 +34,58 @@ const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
   const initialState = location.state as { query: string; results: AIResponse[] };
 
-  const [sessions, setSessions] = useState<ConversationSession[]>(() => {
+  const [sessions, setSessions] = useState<ConversationSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [initialized, setInitialized] = useState(false);
+
+  // Инициализация сессий при монтировании компонента
+  useEffect(() => {
+    if (initialized) return;
+
     const saved = localStorage.getItem(STORAGE_KEY);
+    let loadedSessions: ConversationSession[] = [];
+
     if (saved) {
       try {
-        return JSON.parse(saved);
+        loadedSessions = JSON.parse(saved);
       } catch {
-        return [];
+        loadedSessions = [];
       }
     }
-    return [];
-  });
 
-  const [activeSessionId, setActiveSessionId] = useState<string>(() => {
+    // Проверяем, есть ли активная сессия
     const savedActive = localStorage.getItem(ACTIVE_SESSION_KEY);
-    if (savedActive && sessions.find(s => s.id === savedActive)) {
-      return savedActive;
+
+    // Если пришли с новым запросом (есть initialState)
+    if (initialState && initialState.query) {
+      // Создаем новую сессию
+      const newId = `session_${Date.now()}`;
+      const newSession: ConversationSession = {
+        id: newId,
+        title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
+        messages: [{ query: initialState.query, results: initialState.results }],
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+
+      setSessions([newSession, ...loadedSessions]);
+      setActiveSessionId(newId);
+    } else if (savedActive && loadedSessions.find(s => s.id === savedActive)) {
+      // Загружаем существующую активную сессию
+      setSessions(loadedSessions);
+      setActiveSessionId(savedActive);
+    } else if (loadedSessions.length > 0) {
+      // Выбираем первую сессию
+      setSessions(loadedSessions);
+      setActiveSessionId(loadedSessions[0].id);
+    } else {
+      // Нет сессий - переходим на главную
+      navigate('/');
+      return;
     }
-    // Создаем новую сессию если пришли с главной страницы
-    const newId = `session_${Date.now()}`;
-    const newSession: ConversationSession = {
-      id: newId,
-      title: initialState.query.slice(0, 50) + (initialState.query.length > 50 ? '...' : ''),
-      messages: [{ query: initialState.query, results: initialState.results }],
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    setSessions([newSession, ...sessions]);
-    return newId;
-  });
+
+    setInitialized(true);
+  }, [initialized, initialState, navigate]);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newQuery, setNewQuery] = useState('');
